@@ -23,11 +23,36 @@ if "%UE_ROOT%"=="" (
 )
 
 if "%UE_ROOT%"=="" (
+    if exist "D:\Epic Games\UE_5.3\Engine\Binaries\Win64\UnrealEditor.exe" set "UE_ROOT=D:\Epic Games\UE_5.3"
+)
+
+if "%UE_ROOT%"=="" (
+    if exist "D:\Program Files\Epic Games\UE_5.3\Engine\Binaries\Win64\UnrealEditor.exe" set "UE_ROOT=D:\Program Files\Epic Games\UE_5.3"
+)
+
+if "%UE_ROOT%"=="" (
+    if exist "E:\Epic Games\UE_5.3\Engine\Binaries\Win64\UnrealEditor.exe" set "UE_ROOT=E:\Epic Games\UE_5.3"
+)
+
+if "%UE_ROOT%"=="" (
+    if exist "E:\Program Files\Epic Games\UE_5.3\Engine\Binaries\Win64\UnrealEditor.exe" set "UE_ROOT=E:\Program Files\Epic Games\UE_5.3"
+)
+
+if "%UE_ROOT%"=="" (
+    for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$m='C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests'; if(Test-Path $m){Get-ChildItem $m -Filter *.item | ForEach-Object{try{$j=Get-Content -Raw $_.FullName|ConvertFrom-Json; $p=$j.InstallLocation; if($p -and (Test-Path (Join-Path $p 'Engine\Binaries\Win64\UnrealEditor.exe'))){$p}}catch{}} | Select-Object -First 1}"`) do set "UE_ROOT=%%I"
+)
+
+if "%UE_ROOT%"=="" (
     echo ERROR: Unreal Engine 5.3 was not found.
     echo Checked:
     echo   UE_5_3_ROOT
     echo   C:\Program Files\Epic Games\UE_5.3
     echo   C:\Program Files\Epic Games\UE_5.3EA
+    echo   D:\Epic Games\UE_5.3
+    echo   D:\Program Files\Epic Games\UE_5.3
+    echo   E:\Epic Games\UE_5.3
+    echo   E:\Program Files\Epic Games\UE_5.3
+    echo   Epic Launcher manifests
     echo.
     echo Set UE_5_3_ROOT to your Unreal Engine 5.3 install folder and run again.
     pause
