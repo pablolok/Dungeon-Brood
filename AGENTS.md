@@ -2,7 +2,7 @@
 
 ## Project
 
-- Unreal version: 5.3
+- Unreal version: 5.7
 - Project file: `DungeonBrood.uproject`
 - Module name: `DungeonBrood`
 - Game type: single-player third-person monster-evolution action roguelite
@@ -27,10 +27,16 @@ Run:
 RunGame.bat
 ```
 
-If Unreal Engine 5.3 is not in a default Epic install path, use:
+If Unreal Engine 5.7 is not in a default Epic install path, use:
 
 ```bat
-set UE_5_3_ROOT=C:\Path\To\UE_5.3
+set UE_ROOT=C:\Path\To\UE_5.7
+```
+
+or:
+
+```bat
+set UE_5_7_ROOT=C:\Path\To\UE_5.7
 ```
 
 ## Coding Rules

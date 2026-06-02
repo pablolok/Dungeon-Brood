@@ -17,7 +17,10 @@ public class DungeonBrood : ModuleRules
 			"GameplayTags",
 			"GameplayTasks",
 			"AIModule",
-			"NavigationSystem"
+			"NavigationSystem",
+			"UMG",
+			"Slate",
+			"SlateCore"
 		});
 	}
 }

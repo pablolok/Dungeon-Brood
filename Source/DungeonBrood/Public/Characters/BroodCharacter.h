@@ -13,6 +13,8 @@ class UCameraComponent;
 class USpringArmComponent;
 class UInputAction;
 class UInputMappingContext;
+class UStaticMeshComponent;
+class UTextRenderComponent;
 
 UCLASS()
 class DUNGEONBROOD_API ABroodCharacter : public ACharacter, public IAbilitySystemInterface
@@ -22,6 +24,7 @@ class DUNGEONBROOD_API ABroodCharacter : public ACharacter, public IAbilitySyste
 public:
 	ABroodCharacter();
 
+	virtual void Tick(float DeltaSeconds) override;
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
@@ -55,7 +58,13 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Brood|Stats")
 	float GetBiomassRewardMultiplier() const;
 
-	void OnEnemyKilled(float BiomassReward);
+	void OnEnemyKilled();
+	void AimAtWorldLocation(const FVector& WorldLocation);
+	void BeginCameraOrbit();
+	void EndCameraOrbit();
+	void OrbitCameraYaw(float Value);
+	void OrbitCameraPitch(float Value);
+	float GetCameraYaw() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -66,6 +75,15 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Camera")
 	TObjectPtr<UCameraComponent> FollowCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UStaticMeshComponent> BodyVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UStaticMeshComponent> FacingVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UTextRenderComponent> NameplateVisual;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|GAS")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
@@ -83,9 +101,6 @@ protected:
 	TObjectPtr<UInputAction> MoveAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Brood|Input")
-	TObjectPtr<UInputAction> LookAction;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Brood|Input")
 	TObjectPtr<UInputAction> BasicAttackAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Brood|Input")
@@ -93,11 +108,11 @@ protected:
 
 private:
 	void Move(const FInputActionValue& Value);
-	void Look(const FInputActionValue& Value);
 	void MoveForward(float Value);
 	void MoveRight(float Value);
-	void Turn(float Value);
-	void LookUp(float Value);
+	void UpdateAimFromMouseCursor();
+	void GetCameraMovementDirections(FVector& OutForwardDirection, FVector& OutRightDirection) const;
+	FVector GetLastMovementDirection() const;
 	void AddDefaultInputMappingContext() const;
 	void ApplyInitialMovementSpeed() const;
 	void RegenerateStamina();
@@ -107,6 +122,8 @@ private:
 	void ChooseEvolutionThree();
 	void RestartRun();
 	void ApplyAcidBlood();
+	void ResetAttackFeedback();
+	void ResetDamageFeedback();
 	void PrintStatus() const;
 	void SetHealth(float NewHealth);
 	void SetStamina(float NewStamina);
@@ -130,6 +147,10 @@ private:
 	float AttackRange = 220.0f;
 	float AttackRadius = 75.0f;
 	float VenomBonusDamage = 4.0f;
+	float CameraOrbitSensitivity = 1.0f;
+	bool bCameraOrbitActive = false;
 	FTimerHandle StaminaRegenTimerHandle;
 	FTimerHandle DodgeCooldownTimerHandle;
+	FTimerHandle AttackFeedbackTimerHandle;
+	FTimerHandle DamageFeedbackTimerHandle;
 };

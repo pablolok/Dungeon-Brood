@@ -4,6 +4,9 @@
 #include "GameFramework/Character.h"
 #include "BroodEnemyCharacter.generated.h"
 
+class UStaticMeshComponent;
+class UTextRenderComponent;
+
 UENUM(BlueprintType)
 enum class EBroodEnemyType : uint8
 {
@@ -34,8 +37,21 @@ public:
 
 private:
 	void ConfigureStats();
+	void ConfigureVisuals();
 	void TryAttackPlayer(float DeltaSeconds);
+	void ResetDamageFeedback();
+	void ResetAttackFeedback();
+	void UpdateNameplate();
 	void Die(AActor* DamageCauser);
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> BodyVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> MarkerVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UTextRenderComponent> NameplateVisual;
 
 	EBroodEnemyType EnemyType = EBroodEnemyType::MeleeGrub;
 	float Health = 30.0f;
@@ -45,5 +61,9 @@ private:
 	float AttackCooldown = 1.25f;
 	float AttackTimer = 0.0f;
 	float BiomassReward = 8.0f;
+	FLinearColor BodyColor = FLinearColor::White;
+	FLinearColor MarkerColor = FLinearColor::White;
+	FTimerHandle DamageFeedbackTimerHandle;
+	FTimerHandle AttackFeedbackTimerHandle;
 	bool bIsDead = false;
 };

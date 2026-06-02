@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.3",
+	"EngineAssociation": "5.7",
 	"Category": "Games",
 	"Description": "Single-player monster-evolution action roguelite.",
 	"Modules": [

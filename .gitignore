@@ -4,6 +4,10 @@
 /Intermediate/
 /Saved/
 
+# Large optional Fab imports. Keep wired in code/docs, but do not commit full packs.
+/Content/MedievalDungeon/
+/Content/ParagonMinions/
+
 # Unreal generated project and workspace files
 /.vs/
 /.vscode/

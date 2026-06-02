@@ -6,6 +6,7 @@
 #include "BroodGameMode.generated.h"
 
 class ABroodCharacter;
+class ABiomassPickup;
 class AStaticMeshActor;
 
 USTRUCT(BlueprintType)
@@ -41,9 +42,13 @@ public:
 private:
 	void EnsurePlayer();
 	void BuildTestArena();
-	void SpawnStaticCube(const FString& Name, const FVector& Location, const FVector& Scale);
+	void BuildDungeonDressing();
+	void SpawnStaticCube(const FString& Name, const FVector& Location, const FVector& Scale, const FLinearColor& Color);
+	void SpawnDecorativeMesh(const FString& Name, const TCHAR* MeshPath, const FVector& Location, const FVector& Scale, const FLinearColor& Color, const FRotator& Rotation = FRotator::ZeroRotator, bool bApplyTint = true);
+	void SpawnPointLight(const FString& Name, const FVector& Location, const FLinearColor& Color, float Intensity, float Radius);
 	void StartNextEncounter();
 	void SpawnEnemy(EBroodEnemyType EnemyType, const FVector& Location);
+	void SpawnBiomassPickup(const FVector& Location, float Amount);
 	void OfferEvolutionChoices();
 	void PrintHud() const;
 	TArray<FBroodEvolutionChoice> BuildEvolutionCatalog() const;

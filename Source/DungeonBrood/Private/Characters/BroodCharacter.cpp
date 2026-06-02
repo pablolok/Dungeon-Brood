@@ -2,8 +2,12 @@
 
 #include "AbilitySystem/BroodAttributeSet.h"
 #include "AbilitySystemComponent.h"
+#include "Animation/AnimationAsset.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "DrawDebugHelpers.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -14,28 +18,109 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "TimerManager.h"
+#include "Engine/OverlapResult.h"
+
+namespace
+{
+	UStaticMesh* LoadEngineMesh(const TCHAR* MeshPath)
+	{
+		return LoadObject<UStaticMesh>(nullptr, MeshPath);
+	}
+
+	void ApplyPlaceholderColor(UStaticMeshComponent* MeshComponent, const FLinearColor& Color)
+	{
+		if (!MeshComponent)
+		{
+			return;
+		}
+
+		UMaterialInstanceDynamic* DynamicMaterial = MeshComponent->CreateAndSetMaterialInstanceDynamic(0);
+		if (DynamicMaterial)
+		{
+			DynamicMaterial->SetVectorParameterValue(TEXT("Color"), Color);
+			DynamicMaterial->SetVectorParameterValue(TEXT("BaseColor"), Color);
+		}
+	}
+
+	bool ConfigureSkeletalVisual(USkeletalMeshComponent* MeshComponent, const TCHAR* MeshPath, const TCHAR* IdleAnimationPath, const FVector& RelativeLocation, const FRotator& RelativeRotation, const FVector& RelativeScale)
+	{
+		if (!MeshComponent)
+		{
+			return false;
+		}
+
+		USkeletalMesh* SkeletalMesh = LoadObject<USkeletalMesh>(nullptr, MeshPath);
+		if (!SkeletalMesh)
+		{
+			return false;
+		}
+
+		MeshComponent->SetSkeletalMesh(SkeletalMesh);
+		MeshComponent->SetRelativeLocation(RelativeLocation);
+		MeshComponent->SetRelativeRotation(RelativeRotation);
+		MeshComponent->SetRelativeScale3D(RelativeScale);
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		if (UAnimationAsset* IdleAnimation = LoadObject<UAnimationAsset>(nullptr, IdleAnimationPath))
+		{
+			MeshComponent->PlayAnimation(IdleAnimation, true);
+		}
+
+		return true;
+	}
+}
 
 ABroodCharacter::ABroodCharacter()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 640.0f, 0.0f);
 	GetCharacterMovement()->MaxWalkSpeed = 600.0f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.0f;
 	GetCharacterMovement()->AirControl = 0.35f;
 
+	BodyVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyVisual"));
+	BodyVisual->SetupAttachment(RootComponent);
+	BodyVisual->SetRelativeLocation(FVector(0.0f, 0.0f, 10.0f));
+	BodyVisual->SetRelativeScale3D(FVector(0.75f, 0.55f, 1.15f));
+	BodyVisual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BodyVisual->SetStaticMesh(LoadEngineMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere")));
+	ApplyPlaceholderColor(BodyVisual, FLinearColor(0.05f, 0.75f, 0.22f));
+
+	FacingVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FacingVisual"));
+	FacingVisual->SetupAttachment(RootComponent);
+	FacingVisual->SetRelativeLocation(FVector(55.0f, 0.0f, 10.0f));
+	FacingVisual->SetRelativeScale3D(FVector(0.45f, 0.14f, 0.18f));
+	FacingVisual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FacingVisual->SetStaticMesh(LoadEngineMesh(TEXT("/Engine/BasicShapes/Cube.Cube")));
+	ApplyPlaceholderColor(FacingVisual, FLinearColor(0.7f, 1.0f, 0.18f));
+
+	NameplateVisual = CreateDefaultSubobject<UTextRenderComponent>(TEXT("NameplateVisual"));
+	NameplateVisual->SetupAttachment(RootComponent);
+	NameplateVisual->SetRelativeLocation(FVector(0.0f, 0.0f, 125.0f));
+	NameplateVisual->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
+	NameplateVisual->SetText(FText::FromString(TEXT("BROOD")));
+	NameplateVisual->SetTextRenderColor(FColor(80, 255, 110));
+	NameplateVisual->SetHorizontalAlignment(EHTA_Center);
+	NameplateVisual->SetWorldSize(34.0f);
+	NameplateVisual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 400.0f;
-	CameraBoom->bUsePawnControlRotation = true;
+	CameraBoom->TargetArmLength = 850.0f;
+	CameraBoom->SetUsingAbsoluteRotation(true);
+	CameraBoom->SetRelativeRotation(FRotator(-52.0f, -45.0f, 0.0f));
+	CameraBoom->bUsePawnControlRotation = false;
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -44,6 +129,12 @@ ABroodCharacter::ABroodCharacter()
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AttributeSet = CreateDefaultSubobject<UBroodAttributeSet>(TEXT("AttributeSet"));
 	EvolutionComponent = CreateDefaultSubobject<UEvolutionComponent>(TEXT("EvolutionComponent"));
+}
+
+void ABroodCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	UpdateAimFromMouseCursor();
 }
 
 UAbilitySystemComponent* ABroodCharacter::GetAbilitySystemComponent() const
@@ -63,6 +154,19 @@ void ABroodCharacter::BeginPlay()
 	AddDefaultInputMappingContext();
 	ApplyInitialMovementSpeed();
 
+	const bool bUsingImportedMesh = ConfigureSkeletalVisual(
+		GetMesh(),
+		TEXT("/Game/ParagonMinions/Characters/Minions/Prime_Helix/Meshes/Prime_Helix.Prime_Helix"),
+		TEXT("/Game/ParagonMinions/Characters/Minions/Prime_Helix/Animations/Idle.Idle"),
+		FVector(0.0f, 0.0f, -96.0f),
+		FRotator(0.0f, -90.0f, 0.0f),
+		FVector(0.62f));
+	BodyVisual->SetVisibility(!bUsingImportedMesh);
+	if (bUsingImportedMesh)
+	{
+		UE_LOG(LogTemp, Display, TEXT("BROOD_IMPORTED_PLAYER_ASSET_READY: Prime Helix mesh linked."));
+	}
+
 	GetWorldTimerManager().SetTimer(StaminaRegenTimerHandle, this, &ABroodCharacter::RegenerateStamina, 0.25f, true);
 	PrintStatus();
 }
@@ -73,14 +177,16 @@ void ABroodCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 
 	PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &ABroodCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &ABroodCharacter::MoveRight);
-	PlayerInputComponent->BindAxis(TEXT("Turn"), this, &ABroodCharacter::Turn);
-	PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &ABroodCharacter::LookUp);
+	PlayerInputComponent->BindAxis(TEXT("CameraOrbitYaw"), this, &ABroodCharacter::OrbitCameraYaw);
+	PlayerInputComponent->BindAxis(TEXT("CameraOrbitPitch"), this, &ABroodCharacter::OrbitCameraPitch);
 	PlayerInputComponent->BindAction(TEXT("Attack"), IE_Pressed, this, &ABroodCharacter::BasicAttack);
 	PlayerInputComponent->BindAction(TEXT("Dodge"), IE_Pressed, this, &ABroodCharacter::Dodge);
 	PlayerInputComponent->BindAction(TEXT("ChooseEvolution1"), IE_Pressed, this, &ABroodCharacter::ChooseEvolutionOne);
 	PlayerInputComponent->BindAction(TEXT("ChooseEvolution2"), IE_Pressed, this, &ABroodCharacter::ChooseEvolutionTwo);
 	PlayerInputComponent->BindAction(TEXT("ChooseEvolution3"), IE_Pressed, this, &ABroodCharacter::ChooseEvolutionThree);
 	PlayerInputComponent->BindAction(TEXT("RestartRun"), IE_Pressed, this, &ABroodCharacter::RestartRun);
+	PlayerInputComponent->BindAction(TEXT("CameraOrbit"), IE_Pressed, this, &ABroodCharacter::BeginCameraOrbit);
+	PlayerInputComponent->BindAction(TEXT("CameraOrbit"), IE_Released, this, &ABroodCharacter::EndCameraOrbit);
 
 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!EnhancedInputComponent)
@@ -91,11 +197,6 @@ void ABroodCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	if (MoveAction)
 	{
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABroodCharacter::Move);
-	}
-
-	if (LookAction)
-	{
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABroodCharacter::Look);
 	}
 
 	if (BasicAttackAction)
@@ -116,6 +217,8 @@ void ABroodCharacter::BasicAttack()
 		return;
 	}
 
+	UpdateAimFromMouseCursor();
+
 	const FVector Start = GetActorLocation() + FVector(0.0f, 0.0f, 45.0f);
 	const FVector End = Start + GetActorForwardVector() * AttackRange;
 	FCollisionShape Shape = FCollisionShape::MakeSphere(AttackRadius);
@@ -123,7 +226,11 @@ void ABroodCharacter::BasicAttack()
 	TArray<FHitResult> Hits;
 
 	const bool bHit = GetWorld()->SweepMultiByChannel(Hits, Start, End, FQuat::Identity, ECC_Pawn, Shape, Params);
+	DrawDebugLine(GetWorld(), Start, End, bHit ? FColor::Green : FColor::Yellow, false, 0.35f, 0, 5.0f);
 	DrawDebugSphere(GetWorld(), End, AttackRadius, 16, bHit ? FColor::Red : FColor::Silver, false, 0.35f);
+	FacingVisual->SetRelativeScale3D(FVector(0.9f, 0.22f, 0.28f));
+	ApplyPlaceholderColor(FacingVisual, bHit ? FLinearColor(0.1f, 1.0f, 0.15f) : FLinearColor(1.0f, 0.85f, 0.1f));
+	GetWorldTimerManager().SetTimer(AttackFeedbackTimerHandle, this, &ABroodCharacter::ResetAttackFeedback, 0.18f, false);
 
 	float Damage = AttributeSet ? AttributeSet->GetAttackPower() : 10.0f;
 	if (bVenomStrike)
@@ -172,10 +279,7 @@ void ABroodCharacter::Dodge()
 	FVector DodgeDirection = GetActorForwardVector();
 	if (!LastMovementInput.IsNearlyZero())
 	{
-		const FRotator YawRotation(0.0f, Controller ? Controller->GetControlRotation().Yaw : GetActorRotation().Yaw, 0.0f);
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		DodgeDirection = (ForwardDirection * LastMovementInput.Y + RightDirection * LastMovementInput.X).GetSafeNormal();
+		DodgeDirection = GetLastMovementDirection();
 	}
 
 	LaunchCharacter(DodgeDirection * DodgeImpulseStrength, true, false);
@@ -193,6 +297,8 @@ float ABroodCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damage
 
 	const float MitigatedDamage = FMath::Max(1.0f, DamageAmount - AttributeSet->GetArmor());
 	SetHealth(AttributeSet->GetHealth() - MitigatedDamage);
+	ApplyPlaceholderColor(BodyVisual, FLinearColor(1.0f, 0.08f, 0.04f));
+	GetWorldTimerManager().SetTimer(DamageFeedbackTimerHandle, this, &ABroodCharacter::ResetDamageFeedback, 0.2f, false);
 	UE_LOG(LogTemp, Warning, TEXT("Brood took %.1f damage from %s. Health: %.1f"), MitigatedDamage, *GetNameSafe(DamageCauser), AttributeSet->GetHealth());
 
 	if (bAcidBlood)
@@ -316,13 +422,63 @@ float ABroodCharacter::GetBiomassRewardMultiplier() const
 	return BiomassRewardMultiplier;
 }
 
-void ABroodCharacter::OnEnemyKilled(float BiomassReward)
+void ABroodCharacter::OnEnemyKilled()
 {
-	AddBiomass(BiomassReward * BiomassRewardMultiplier);
 	if (bDigestEssence)
 	{
 		Heal(8.0f);
 	}
+}
+
+void ABroodCharacter::AimAtWorldLocation(const FVector& WorldLocation)
+{
+	FVector AimDirection = WorldLocation - GetActorLocation();
+	AimDirection.Z = 0.0f;
+	if (!AimDirection.IsNearlyZero())
+	{
+		SetActorRotation(AimDirection.Rotation());
+	}
+}
+
+void ABroodCharacter::BeginCameraOrbit()
+{
+	bCameraOrbitActive = true;
+	UE_LOG(LogTemp, Display, TEXT("BROOD_CAMERA_ORBIT_STARTED."));
+}
+
+void ABroodCharacter::EndCameraOrbit()
+{
+	bCameraOrbitActive = false;
+	UE_LOG(LogTemp, Display, TEXT("BROOD_CAMERA_ORBIT_ENDED: yaw %.1f."), GetCameraYaw());
+}
+
+void ABroodCharacter::OrbitCameraYaw(float Value)
+{
+	if (!bCameraOrbitActive || !CameraBoom || FMath::IsNearlyZero(Value))
+	{
+		return;
+	}
+
+	FRotator CameraRotation = CameraBoom->GetComponentRotation();
+	CameraRotation.Yaw += Value * CameraOrbitSensitivity;
+	CameraBoom->SetWorldRotation(CameraRotation);
+}
+
+void ABroodCharacter::OrbitCameraPitch(float Value)
+{
+	if (!bCameraOrbitActive || !CameraBoom || FMath::IsNearlyZero(Value))
+	{
+		return;
+	}
+
+	FRotator CameraRotation = CameraBoom->GetComponentRotation();
+	CameraRotation.Pitch = FMath::Clamp(CameraRotation.Pitch + Value * CameraOrbitSensitivity, -70.0f, -35.0f);
+	CameraBoom->SetWorldRotation(CameraRotation);
+}
+
+float ABroodCharacter::GetCameraYaw() const
+{
+	return CameraBoom ? CameraBoom->GetComponentRotation().Yaw : 0.0f;
 }
 
 void ABroodCharacter::Move(const FInputActionValue& Value)
@@ -333,55 +489,82 @@ void ABroodCharacter::Move(const FInputActionValue& Value)
 		return;
 	}
 
-	const FRotator YawRotation(0.0f, Controller->GetControlRotation().Yaw, 0.0f);
-	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+	FVector ForwardDirection;
+	FVector RightDirection;
+	GetCameraMovementDirections(ForwardDirection, RightDirection);
 
 	AddMovementInput(ForwardDirection, MovementVector.Y);
 	AddMovementInput(RightDirection, MovementVector.X);
 	LastMovementInput = MovementVector;
 }
 
-void ABroodCharacter::Look(const FInputActionValue& Value)
-{
-	const FVector2D LookAxisVector = Value.Get<FVector2D>();
-	if (LookAxisVector.IsNearlyZero())
-	{
-		return;
-	}
-
-	AddControllerYawInput(LookAxisVector.X);
-	AddControllerPitchInput(LookAxisVector.Y);
-}
-
 void ABroodCharacter::MoveForward(float Value)
 {
-	if (Controller && !bIsDead && !FMath::IsNearlyZero(Value))
+	LastMovementInput.Y = Value;
+	if (!bIsDead && !FMath::IsNearlyZero(Value))
 	{
-		const FRotator YawRotation(0.0f, Controller->GetControlRotation().Yaw, 0.0f);
-		AddMovementInput(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X), Value);
-		LastMovementInput.Y = Value;
+		FVector ForwardDirection;
+		FVector RightDirection;
+		GetCameraMovementDirections(ForwardDirection, RightDirection);
+		AddMovementInput(ForwardDirection, Value);
 	}
 }
 
 void ABroodCharacter::MoveRight(float Value)
 {
-	if (Controller && !bIsDead && !FMath::IsNearlyZero(Value))
+	LastMovementInput.X = Value;
+	if (!bIsDead && !FMath::IsNearlyZero(Value))
 	{
-		const FRotator YawRotation(0.0f, Controller->GetControlRotation().Yaw, 0.0f);
-		AddMovementInput(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y), Value);
-		LastMovementInput.X = Value;
+		FVector ForwardDirection;
+		FVector RightDirection;
+		GetCameraMovementDirections(ForwardDirection, RightDirection);
+		AddMovementInput(RightDirection, Value);
 	}
 }
 
-void ABroodCharacter::Turn(float Value)
+void ABroodCharacter::UpdateAimFromMouseCursor()
 {
-	AddControllerYawInput(Value);
+	const APlayerController* PlayerController = Cast<APlayerController>(Controller);
+	if (!PlayerController || bIsDead)
+	{
+		return;
+	}
+
+	FVector MouseWorldLocation;
+	FVector MouseWorldDirection;
+	if (!PlayerController->DeprojectMousePositionToWorld(MouseWorldLocation, MouseWorldDirection))
+	{
+		return;
+	}
+
+	const float VerticalDirection = FVector::DotProduct(MouseWorldDirection, FVector::UpVector);
+	if (FMath::IsNearlyZero(VerticalDirection))
+	{
+		return;
+	}
+
+	const FPlane AimPlane(GetActorLocation(), FVector::UpVector);
+	const FVector AimLocation = FMath::LinePlaneIntersection(
+		MouseWorldLocation,
+		MouseWorldLocation + MouseWorldDirection * 100000.0f,
+		AimPlane);
+	AimAtWorldLocation(AimLocation);
 }
 
-void ABroodCharacter::LookUp(float Value)
+void ABroodCharacter::GetCameraMovementDirections(FVector& OutForwardDirection, FVector& OutRightDirection) const
 {
-	AddControllerPitchInput(Value);
+	const float CameraYaw = CameraBoom ? CameraBoom->GetComponentRotation().Yaw : 0.0f;
+	const FRotator CameraYawRotation(0.0f, CameraYaw, 0.0f);
+	OutForwardDirection = FRotationMatrix(CameraYawRotation).GetUnitAxis(EAxis::X);
+	OutRightDirection = FRotationMatrix(CameraYawRotation).GetUnitAxis(EAxis::Y);
+}
+
+FVector ABroodCharacter::GetLastMovementDirection() const
+{
+	FVector ForwardDirection;
+	FVector RightDirection;
+	GetCameraMovementDirections(ForwardDirection, RightDirection);
+	return (ForwardDirection * LastMovementInput.Y + RightDirection * LastMovementInput.X).GetSafeNormal2D();
 }
 
 void ABroodCharacter::AddDefaultInputMappingContext() const
@@ -472,6 +655,17 @@ void ABroodCharacter::ApplyAcidBlood()
 			}
 		}
 	}
+}
+
+void ABroodCharacter::ResetAttackFeedback()
+{
+	FacingVisual->SetRelativeScale3D(FVector(0.45f, 0.14f, 0.18f));
+	ApplyPlaceholderColor(FacingVisual, FLinearColor(0.7f, 1.0f, 0.18f));
+}
+
+void ABroodCharacter::ResetDamageFeedback()
+{
+	ApplyPlaceholderColor(BodyVisual, FLinearColor(0.05f, 0.75f, 0.22f));
 }
 
 void ABroodCharacter::PrintStatus() const
