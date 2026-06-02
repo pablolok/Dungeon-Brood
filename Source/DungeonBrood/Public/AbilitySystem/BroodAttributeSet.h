@@ -46,6 +46,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
 	FGameplayAttributeData MovementSpeed;
 	BROOD_ATTRIBUTE_ACCESSORS(UBroodAttributeSet, MovementSpeed)
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	FGameplayAttributeData Biomass;
+	BROOD_ATTRIBUTE_ACCESSORS(UBroodAttributeSet, Biomass)
 };
 
 #undef BROOD_ATTRIBUTE_ACCESSORS

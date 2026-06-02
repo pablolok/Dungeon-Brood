@@ -12,7 +12,8 @@ enum class EBroodAttribute : uint8
 	MaxStamina,
 	AttackPower,
 	Armor,
-	MovementSpeed
+	MovementSpeed,
+	Biomass
 };
 
 USTRUCT(BlueprintType)

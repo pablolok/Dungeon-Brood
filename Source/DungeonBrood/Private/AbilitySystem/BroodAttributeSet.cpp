@@ -9,4 +9,5 @@ UBroodAttributeSet::UBroodAttributeSet()
 	InitAttackPower(10.0f);
 	InitArmor(0.0f);
 	InitMovementSpeed(600.0f);
+	InitBiomass(0.0f);
 }

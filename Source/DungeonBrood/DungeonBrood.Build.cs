@@ -15,7 +15,9 @@ public class DungeonBrood : ModuleRules
 			"EnhancedInput",
 			"GameplayAbilities",
 			"GameplayTags",
-			"GameplayTasks"
+			"GameplayTasks",
+			"AIModule",
+			"NavigationSystem"
 		});
 	}
 }
