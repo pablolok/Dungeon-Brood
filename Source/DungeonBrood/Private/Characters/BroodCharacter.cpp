@@ -70,6 +70,19 @@ namespace
 
 		return true;
 	}
+
+	void PlaySkeletalAnimation(USkeletalMeshComponent* MeshComponent, const FString& AnimationPath, bool bLooping)
+	{
+		if (!MeshComponent || AnimationPath.IsEmpty())
+		{
+			return;
+		}
+
+		if (UAnimationAsset* Animation = LoadObject<UAnimationAsset>(nullptr, *AnimationPath))
+		{
+			MeshComponent->PlayAnimation(Animation, bLooping);
+		}
+	}
 }
 
 ABroodCharacter::ABroodCharacter()
@@ -154,18 +167,7 @@ void ABroodCharacter::BeginPlay()
 	AddDefaultInputMappingContext();
 	ApplyInitialMovementSpeed();
 
-	const bool bUsingImportedMesh = ConfigureSkeletalVisual(
-		GetMesh(),
-		TEXT("/Game/ParagonMinions/Characters/Minions/Prime_Helix/Meshes/Prime_Helix.Prime_Helix"),
-		TEXT("/Game/ParagonMinions/Characters/Minions/Prime_Helix/Animations/Idle.Idle"),
-		FVector(0.0f, 0.0f, -96.0f),
-		FRotator(0.0f, -90.0f, 0.0f),
-		FVector(0.62f));
-	BodyVisual->SetVisibility(!bUsingImportedMesh);
-	if (bUsingImportedMesh)
-	{
-		UE_LOG(LogTemp, Display, TEXT("BROOD_IMPORTED_PLAYER_ASSET_READY: Prime Helix mesh linked."));
-	}
+	UpdateMutationVisual();
 
 	GetWorldTimerManager().SetTimer(StaminaRegenTimerHandle, this, &ABroodCharacter::RegenerateStamina, 0.25f, true);
 	PrintStatus();
@@ -218,6 +220,7 @@ void ABroodCharacter::BasicAttack()
 	}
 
 	UpdateAimFromMouseCursor();
+	PlayAttackAnimation();
 
 	const FVector Start = GetActorLocation() + FVector(0.0f, 0.0f, 45.0f);
 	const FVector End = Start + GetActorForwardVector() * AttackRange;
@@ -392,6 +395,7 @@ bool ABroodCharacter::ApplyEvolution(FName EvolutionId)
 		SetHealth(AttributeSet->GetHealth() + 35.0f);
 	}
 
+	UpdateMutationVisual();
 	UE_LOG(LogTemp, Log, TEXT("Evolution acquired: %s"), *EvolutionId.ToString());
 	PrintStatus();
 	return true;
@@ -565,6 +569,74 @@ FVector ABroodCharacter::GetLastMovementDirection() const
 	FVector RightDirection;
 	GetCameraMovementDirections(ForwardDirection, RightDirection);
 	return (ForwardDirection * LastMovementInput.Y + RightDirection * LastMovementInput.X).GetSafeNormal2D();
+}
+
+void ABroodCharacter::UpdateMutationVisual()
+{
+	const TCHAR* MeshPath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_White/Meshes/Buff_White.Buff_White");
+	const TCHAR* IdlePath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_White/Animations/Melee_Idle_A.Melee_Idle_A");
+	PlayerAttackAnimationPath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_White/Animations/Melee_Attack_01_A.Melee_Attack_01_A");
+	FVector VisualScale(0.62f);
+	FName MutationProfile = TEXT("BaseBrood");
+
+	if (bAcidBlood || bVenomStrike)
+	{
+		MeshPath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Green/Meshes/Buff_Green.Buff_Green");
+		IdlePath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Green/Animations/Idle.Idle");
+		PlayerAttackAnimationPath.Reset();
+		VisualScale = FVector(0.68f);
+		MutationProfile = TEXT("ToxicBrood");
+	}
+	else if (bDigestEssence || BiomassRewardMultiplier > 1.0f)
+	{
+		MeshPath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Blue/Meshes/Buff_Blue.Buff_Blue");
+		IdlePath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Blue/Animations/Idle_A.Idle_A");
+		VisualScale = FVector(0.68f);
+		MutationProfile = TEXT("InstinctBrood");
+	}
+
+	if (AttributeSet && AttributeSet->GetAttackPower() > 10.0f)
+	{
+		MeshPath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Red/Meshes/Buff_Red.Buff_Red");
+		IdlePath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Red/Animations/Idle.Idle");
+		PlayerAttackAnimationPath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Red/Animations/Attack_BigSmash.Attack_BigSmash");
+		VisualScale = FVector(0.72f);
+		MutationProfile = TEXT("ClawBrood");
+	}
+
+	if ((AttributeSet && AttributeSet->GetArmor() > 0.0f) || (AttributeSet && AttributeSet->GetMaxHealth() > 100.0f))
+	{
+		MeshPath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Black/Meshes/Buff_Black.Buff_Black");
+		IdlePath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Black/Animations/Idle.Idle");
+		PlayerAttackAnimationPath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Black/Animations/BiteAttack_A.BiteAttack_A");
+		VisualScale = FVector(0.78f);
+		MutationProfile = TEXT("ArmoredBrood");
+	}
+	else if (DodgeImpulseStrength > 900.0f || (AttributeSet && AttributeSet->GetMovementSpeed() > 600.0f))
+	{
+		MeshPath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Green/Meshes/Buff_Green.Buff_Green");
+		IdlePath = TEXT("/Game/ParagonMinions/Characters/Buff/Buff_Green/Animations/Idle.Idle");
+		VisualScale = FVector(0.66f);
+		MutationProfile = TEXT("LeapingBrood");
+	}
+
+	const bool bUsingImportedMesh = ConfigureSkeletalVisual(
+		GetMesh(),
+		MeshPath,
+		IdlePath,
+		FVector(0.0f, 0.0f, -96.0f),
+		FRotator(0.0f, -90.0f, 0.0f),
+		VisualScale);
+	BodyVisual->SetVisibility(!bUsingImportedMesh);
+	if (bUsingImportedMesh)
+	{
+		UE_LOG(LogTemp, Display, TEXT("BROOD_IMPORTED_PLAYER_ASSET_READY: %s mutation mesh linked."), *MutationProfile.ToString());
+	}
+}
+
+void ABroodCharacter::PlayAttackAnimation()
+{
+	PlaySkeletalAnimation(GetMesh(), PlayerAttackAnimationPath, false);
 }
 
 void ABroodCharacter::AddDefaultInputMappingContext() const

@@ -126,13 +126,11 @@ void ABroodGameMode::EnsurePlayer()
 
 void ABroodGameMode::BuildTestArena()
 {
-	SpawnStaticCube(TEXT("ArenaFloor"), FVector(0.0f, 0.0f, -55.0f), FVector(18.0f, 18.0f, 0.5f), FLinearColor(0.08f, 0.08f, 0.09f));
-	SpawnStaticCube(TEXT("NorthWall"), FVector(0.0f, 1800.0f, 120.0f), FVector(18.0f, 0.4f, 2.8f), FLinearColor(0.18f, 0.18f, 0.22f));
-	SpawnStaticCube(TEXT("SouthWall"), FVector(0.0f, -1800.0f, 120.0f), FVector(18.0f, 0.4f, 2.8f), FLinearColor(0.18f, 0.18f, 0.22f));
-	SpawnStaticCube(TEXT("EastWall"), FVector(1800.0f, 0.0f, 120.0f), FVector(0.4f, 18.0f, 2.8f), FLinearColor(0.18f, 0.18f, 0.22f));
-	SpawnStaticCube(TEXT("WestWall"), FVector(-1800.0f, 0.0f, 120.0f), FVector(0.4f, 18.0f, 2.8f), FLinearColor(0.18f, 0.18f, 0.22f));
-	SpawnStaticCube(TEXT("PlayerStartMarker"), FVector(0.0f, 0.0f, -5.0f), FVector(1.2f, 1.2f, 0.06f), FLinearColor(0.0f, 0.8f, 0.2f));
-	SpawnStaticCube(TEXT("EnemyLaneMarker"), FVector(760.0f, 0.0f, -4.0f), FVector(3.2f, 0.16f, 0.06f), FLinearColor(0.9f, 0.08f, 0.04f));
+	SpawnStaticCube(TEXT("ArenaFloorCollision"), FVector(0.0f, 0.0f, -55.0f), FVector(18.0f, 18.0f, 0.5f), FLinearColor(0.08f, 0.08f, 0.09f), false);
+	SpawnStaticCube(TEXT("NorthWallCollision"), FVector(0.0f, 1800.0f, 120.0f), FVector(18.0f, 0.4f, 2.8f), FLinearColor(0.18f, 0.18f, 0.22f), false);
+	SpawnStaticCube(TEXT("SouthWallCollision"), FVector(0.0f, -1800.0f, 120.0f), FVector(18.0f, 0.4f, 2.8f), FLinearColor(0.18f, 0.18f, 0.22f), false);
+	SpawnStaticCube(TEXT("EastWallCollision"), FVector(1800.0f, 0.0f, 120.0f), FVector(0.4f, 18.0f, 2.8f), FLinearColor(0.18f, 0.18f, 0.22f), false);
+	SpawnStaticCube(TEXT("WestWallCollision"), FVector(-1800.0f, 0.0f, 120.0f), FVector(0.4f, 18.0f, 2.8f), FLinearColor(0.18f, 0.18f, 0.22f), false);
 }
 
 void ABroodGameMode::BuildDungeonDressing()
@@ -143,11 +141,36 @@ void ABroodGameMode::BuildDungeonDressing()
 	const FLinearColor EmberColor(1.0f, 0.18f, 0.03f);
 	const FLinearColor BiomassColor(0.05f, 0.85f, 0.30f);
 
+	for (int32 X = -3; X <= 3; ++X)
+	{
+		for (int32 Y = -3; Y <= 3; ++Y)
+		{
+			SpawnDecorativeMesh(
+				FString::Printf(TEXT("DungeonFloor_%d_%d"), X, Y),
+				TEXT("/Game/MedievalDungeon/Meshes/Architecture/Crypt/SM_Crypt_Floor.SM_Crypt_Floor"),
+				FVector(X * 500.0f, Y * 500.0f, 1.0f),
+				FVector(2.15f),
+				StoneColor,
+				FRotator(0.0f, (X + Y) % 2 == 0 ? 0.0f : 90.0f, 0.0f),
+				true);
+		}
+	}
+
 	for (int32 Index = -3; Index <= 3; ++Index)
 	{
-		const float Offset = Index * 420.0f;
-		SpawnDecorativeMesh(FString::Printf(TEXT("FloorBand_%d"), Index), TEXT("/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Floor.SM_Floor"), FVector(Offset, 0.0f, -24.0f), FVector(3.0f, 3.0f, 1.0f), StoneColor, FRotator::ZeroRotator, false);
+		const float Offset = Index * 520.0f;
+		SpawnDecorativeMesh(FString::Printf(TEXT("NorthDungeonWall_%d"), Index), TEXT("/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Dungeon_Wall.SM_Dungeon_Wall"), FVector(Offset, 1700.0f, 120.0f), FVector(1.55f), StoneColor, FRotator(0.0f, 180.0f, 0.0f), false);
+		SpawnDecorativeMesh(FString::Printf(TEXT("SouthDungeonWall_%d"), Index), TEXT("/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Dungeon_Wall.SM_Dungeon_Wall"), FVector(Offset, -1700.0f, 120.0f), FVector(1.55f), StoneColor, FRotator::ZeroRotator, false);
+		if (Index != 0)
+		{
+			SpawnDecorativeMesh(FString::Printf(TEXT("EastDungeonWall_%d"), Index), TEXT("/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Dungeon_Wall.SM_Dungeon_Wall"), FVector(1700.0f, Offset, 120.0f), FVector(1.55f), StoneColor, FRotator(0.0f, -90.0f, 0.0f), false);
+			SpawnDecorativeMesh(FString::Printf(TEXT("WestDungeonWall_%d"), Index), TEXT("/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Dungeon_Wall.SM_Dungeon_Wall"), FVector(-1700.0f, Offset, 120.0f), FVector(1.55f), StoneColor, FRotator(0.0f, 90.0f, 0.0f), false);
+		}
 	}
+
+	SpawnDecorativeMesh(TEXT("EastDungeonDoorway"), TEXT("/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_DoorWay.SM_DoorWay"), FVector(1700.0f, 0.0f, 120.0f), FVector(1.65f), StoneColor, FRotator(0.0f, -90.0f, 0.0f), false);
+	SpawnDecorativeMesh(TEXT("WestDungeonDoorway"), TEXT("/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_DoorWay.SM_DoorWay"), FVector(-1700.0f, 0.0f, 120.0f), FVector(1.65f), StoneColor, FRotator(0.0f, 90.0f, 0.0f), false);
+	SpawnDecorativeMesh(TEXT("NorthDungeonArch"), TEXT("/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Decorative_Arches.SM_Decorative_Arches"), FVector(0.0f, 1660.0f, 170.0f), FVector(1.8f), StoneColor, FRotator(0.0f, 180.0f, 0.0f), false);
 
 	const TArray<FVector> PillarLocations = {
 		FVector(-1420.0f, -1420.0f, 170.0f), FVector(-1420.0f, 1420.0f, 170.0f),
@@ -210,7 +233,7 @@ void ABroodGameMode::BuildDungeonDressing()
 	UE_LOG(LogTemp, Display, TEXT("BROOD_WORLD_DRESSING_READY: dungeon floor, pillars, braziers, crystals and rubble spawned."));
 }
 
-void ABroodGameMode::SpawnStaticCube(const FString& Name, const FVector& Location, const FVector& Scale, const FLinearColor& Color)
+void ABroodGameMode::SpawnStaticCube(const FString& Name, const FVector& Location, const FVector& Scale, const FLinearColor& Color, bool bVisible)
 {
 	UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
 	if (!CubeMesh)
@@ -229,7 +252,12 @@ void ABroodGameMode::SpawnStaticCube(const FString& Name, const FVector& Locatio
 	MeshActor->GetStaticMeshComponent()->SetStaticMesh(CubeMesh);
 	MeshActor->SetActorScale3D(Scale);
 	MeshActor->GetStaticMeshComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	ApplyPlaceholderColor(MeshActor->GetStaticMeshComponent(), Color);
+	MeshActor->GetStaticMeshComponent()->SetVisibility(bVisible);
+	MeshActor->GetStaticMeshComponent()->SetHiddenInGame(!bVisible);
+	if (bVisible)
+	{
+		ApplyPlaceholderColor(MeshActor->GetStaticMeshComponent(), Color);
+	}
 }
 
 void ABroodGameMode::SpawnDecorativeMesh(const FString& Name, const TCHAR* MeshPath, const FVector& Location, const FVector& Scale, const FLinearColor& Color, const FRotator& Rotation, bool bApplyTint)

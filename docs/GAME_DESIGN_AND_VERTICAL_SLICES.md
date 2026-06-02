@@ -261,7 +261,7 @@ Verifica finale eseguita il 2 giugno 2026:
 
 ### Infra - Mira mouse indipendente
 
-Stato: completata e verificata su UE 5.7.
+Stato: in corso, seconda passata asset/world implementata e verificata su UE 5.7.
 
 Obiettivo: consentire al player di muoversi e scappare con WASD mentre mira e attacca in una direzione indipendente tramite mouse.
 
@@ -454,6 +454,17 @@ Implementato nel primo incremento:
 - mesh `ParagonMinions` collegate per player e archetipi nemici quando il pack e presente localmente;
 - animazioni minime collegate su idle, attacco e morte quando disponibili.
 
+Implementato nel secondo incremento:
+
+- collision floor e collision wall mantenuti per gameplay ma resi invisibili;
+- marker visivi di test rimossi dalla stanza runtime;
+- pavimento passato a moduli `SM_Crypt_Floor` del pack `Medieval Dungeon`;
+- pareti perimetrali, doorway est/ovest e arco nord spawnati come moduli dungeon visibili;
+- player temporaneo spostato da `Prime_Helix` alla linea `Buff_*` di `Paragon: Minions` per distinguere profili mutazione;
+- profili visuali player attuali: `BaseBrood`, `ToxicBrood`, `InstinctBrood`, `ClawBrood`, `ArmoredBrood`, `LeapingBrood`;
+- animazione attacco player collegata dove compatibile; profilo tossico lasciato senza attack override per evitare animazioni cross-skeleton fragili;
+- smoke windowed reso piu robusto cercando una finestra visibile per PID Unreal e usando fallback su screen bounds quando Windows non restituisce il rettangolo finestra.
+
 Checkpoint eseguito il 2 giugno 2026:
 
 - `BuildGame.bat`: riuscito;
@@ -463,16 +474,18 @@ Checkpoint eseguito il 2 giugno 2026:
 - log finestra verificato: marker `BROOD_IMPORTED_PLAYER_ASSET_READY`;
 - log finestra verificato: marker `BROOD_IMPORTED_ENEMY_ASSET_READY`;
 - log finestra verificato: trascinamento tasto destro con yaw finale `-45.1`;
-- screenshot runtime `Saved/Logs/DungeonBroodVisualSmoke.png`: player Paragon visibile, asset dungeon visibili e HUD leggibile;
+- screenshot runtime precedente: player Paragon visibile, asset dungeon visibili e HUD leggibile;
+- seconda verifica automatica: `BuildGame.bat` riuscito dopo passaggio a `SM_Crypt_Floor`;
+- seconda verifica automatica: `SmokeTestAll.bat` riuscito dopo correzione world/player/windowed smoke;
 - nessun processo Unreal di test rimasto aperto;
-- nota: la slice non e ancora completata perche il pavimento e la composizione non comunicano ancora abbastanza il dungeon, e il player usa un asset temporaneo non adatto a rappresentare evoluzioni e mutazioni.
+- nota: la slice non e ancora completata perche il player usa ancora una linea temporanea `Paragon: Minions/Buff_*` e serve una verifica visuale manuale stabile del pavimento `SM_Crypt_Floor`, scala, luci e composizione stanza.
 
 Lavoro rimanente prima di completare la slice:
 
-- sostituire il pavimento/base arena con moduli dungeon coerenti, evitando la lettura da template/griglia base;
-- costruire una stanza dungeon riconoscibile con pareti, porte, props e illuminazione coerente;
-- scegliere una linea visuale del player adatta alla fantasia `brood/evoluzione`;
-- definire asset o varianti per fasi/mutazioni del player, almeno base, armored, claws/attack, speed/leap e thick hide;
+- verificare manualmente in editor/game che `SM_Crypt_Floor` non legga piu come template/checker;
+- rifinire luci, camera e densita props per far leggere la stanza come dungeon, non solo arena decorata;
+- scegliere una linea visuale definitiva del player adatta alla fantasia `brood/evoluzione`;
+- definire asset o varianti definitive per fasi/mutazioni del player, almeno base, armored, claws/attack, speed/leap e thick hide;
 - ridurre o riorganizzare gli asset Fab usati per non dipendere dall'intero pack;
 - verifica visuale manuale di player, nemici e mondo prima dello stato `completata`.
 

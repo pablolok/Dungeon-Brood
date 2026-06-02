@@ -51,8 +51,23 @@ Until the project adopts Git LFS, Perforce, or a curated minimal asset commit, c
 
 ### Player
 
-- `/Game/ParagonMinions/Characters/Minions/Prime_Helix/Meshes/Prime_Helix`
-- `/Game/ParagonMinions/Characters/Minions/Prime_Helix/Animations/Idle`
+- BaseBrood: `/Game/ParagonMinions/Characters/Buff/Buff_White/Meshes/Buff_White`
+- BaseBrood idle: `/Game/ParagonMinions/Characters/Buff/Buff_White/Animations/Melee_Idle_A`
+- BaseBrood attack: `/Game/ParagonMinions/Characters/Buff/Buff_White/Animations/Melee_Attack_01_A`
+- ToxicBrood: `/Game/ParagonMinions/Characters/Buff/Buff_Green/Meshes/Buff_Green`
+- ToxicBrood idle: `/Game/ParagonMinions/Characters/Buff/Buff_Green/Animations/Idle`
+- InstinctBrood: `/Game/ParagonMinions/Characters/Buff/Buff_Blue/Meshes/Buff_Blue`
+- InstinctBrood idle: `/Game/ParagonMinions/Characters/Buff/Buff_Blue/Animations/Idle_A`
+- ClawBrood: `/Game/ParagonMinions/Characters/Buff/Buff_Red/Meshes/Buff_Red`
+- ClawBrood idle: `/Game/ParagonMinions/Characters/Buff/Buff_Red/Animations/Idle`
+- ClawBrood attack: `/Game/ParagonMinions/Characters/Buff/Buff_Red/Animations/Attack_BigSmash`
+- ArmoredBrood: `/Game/ParagonMinions/Characters/Buff/Buff_Black/Meshes/Buff_Black`
+- ArmoredBrood idle: `/Game/ParagonMinions/Characters/Buff/Buff_Black/Animations/Idle`
+- ArmoredBrood attack: `/Game/ParagonMinions/Characters/Buff/Buff_Black/Animations/BiteAttack_A`
+- LeapingBrood: `/Game/ParagonMinions/Characters/Buff/Buff_Green/Meshes/Buff_Green`
+- LeapingBrood idle: `/Game/ParagonMinions/Characters/Buff/Buff_Green/Animations/Idle`
+
+These player meshes are temporary mutation silhouettes. The final Slice 3 acceptance still requires a better player evolution line or curated variants that read as brood mutation stages.
 
 ### Enemies
 
@@ -63,7 +78,10 @@ Until the project adopts Git LFS, Perforce, or a curated minimal asset commit, c
 
 ### World
 
-- `/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Floor`
+- `/Game/MedievalDungeon/Meshes/Architecture/Crypt/SM_Crypt_Floor`
+- `/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Dungeon_Wall`
+- `/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_DoorWay`
+- `/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Decorative_Arches`
 - `/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Pillar`
 - `/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Fire_Pit`
 - `/Game/MedievalDungeon/Meshes/Architecture/Dungeon/SM_Dungeon_Wall_Decorative_A`

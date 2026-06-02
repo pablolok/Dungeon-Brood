@@ -32,6 +32,68 @@ function Wait-LogPattern {
     throw "Timed out waiting for log pattern: $Pattern"
 }
 
+Add-Type @"
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+
+public static class BroodWindowFinder
+{
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    public static IntPtr FindVisibleWindowForProcess(uint targetProcessId)
+    {
+        IntPtr result = IntPtr.Zero;
+        EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
+            uint processId;
+            GetWindowThreadProcessId(hWnd, out processId);
+            if (processId == targetProcessId && IsWindowVisible(hWnd)) {
+                result = hWnd;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return result;
+    }
+}
+"@
+
+function Wait-GameWindowHandle {
+    param(
+        [int] $ProcessId,
+        [int] $TimeoutSeconds = 45
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        $windowHandle = [BroodWindowFinder]::FindVisibleWindowForProcess([uint32] $ProcessId)
+        if ($windowHandle -and $windowHandle -ne [IntPtr]::Zero) {
+            return $windowHandle
+        }
+
+        $process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+        if ($process) {
+            $process.Refresh()
+            if ($process.MainWindowHandle -and $process.MainWindowHandle -ne [IntPtr]::Zero) {
+                return $process.MainWindowHandle
+            }
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+
+    throw "DungeonBrood did not expose a real game window."
+}
+
 try {
     $launcher = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "RunGame.bat" -WorkingDirectory $workspace -PassThru
     Start-Sleep -Seconds 10
@@ -47,10 +109,7 @@ try {
         throw "UnrealEditor process was not found after RunGame.bat."
     }
 
-    $process = Get-Process -Id $unreal.ProcessId
-    if (-not $process.MainWindowHandle) {
-        throw "DungeonBrood did not expose a real game window."
-    }
+    $windowHandle = Wait-GameWindowHandle -ProcessId $unreal.ProcessId
 
     if ($unreal.CommandLine -notlike "*-windowed*" -or
         $unreal.CommandLine -notlike "*-ResX=1280*" -or
@@ -96,8 +155,13 @@ public static class MouseInput
 "@
 
     $windowRect = New-Object MouseInput+RECT
-    if (-not [MouseInput]::GetWindowRect($process.MainWindowHandle, [ref] $windowRect)) {
-        throw "Could not read the DungeonBrood window rectangle."
+    if (-not [MouseInput]::GetWindowRect($windowHandle, [ref] $windowRect)) {
+        Add-Type -AssemblyName System.Windows.Forms
+        $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+        $windowRect.Left = $screenBounds.Left
+        $windowRect.Top = $screenBounds.Top
+        $windowRect.Right = $screenBounds.Right
+        $windowRect.Bottom = $screenBounds.Bottom
     }
 
     $clickX = [int] ($windowRect.Left + (($windowRect.Right - $windowRect.Left) * 0.70))

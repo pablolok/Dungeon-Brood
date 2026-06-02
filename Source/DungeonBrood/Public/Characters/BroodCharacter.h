@@ -113,6 +113,8 @@ private:
 	void UpdateAimFromMouseCursor();
 	void GetCameraMovementDirections(FVector& OutForwardDirection, FVector& OutRightDirection) const;
 	FVector GetLastMovementDirection() const;
+	void UpdateMutationVisual();
+	void PlayAttackAnimation();
 	void AddDefaultInputMappingContext() const;
 	void ApplyInitialMovementSpeed() const;
 	void RegenerateStamina();
@@ -148,6 +150,7 @@ private:
 	float AttackRadius = 75.0f;
 	float VenomBonusDamage = 4.0f;
 	float CameraOrbitSensitivity = 1.0f;
+	FString PlayerAttackAnimationPath;
 	bool bCameraOrbitActive = false;
 	FTimerHandle StaminaRegenTimerHandle;
 	FTimerHandle DodgeCooldownTimerHandle;

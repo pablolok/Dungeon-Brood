@@ -43,7 +43,7 @@ private:
 	void EnsurePlayer();
 	void BuildTestArena();
 	void BuildDungeonDressing();
-	void SpawnStaticCube(const FString& Name, const FVector& Location, const FVector& Scale, const FLinearColor& Color);
+	void SpawnStaticCube(const FString& Name, const FVector& Location, const FVector& Scale, const FLinearColor& Color, bool bVisible = true);
 	void SpawnDecorativeMesh(const FString& Name, const TCHAR* MeshPath, const FVector& Location, const FVector& Scale, const FLinearColor& Color, const FRotator& Rotation = FRotator::ZeroRotator, bool bApplyTint = true);
 	void SpawnPointLight(const FString& Name, const FVector& Location, const FLinearColor& Color, float Intensity, float Radius);
 	void StartNextEncounter();
