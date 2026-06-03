@@ -13,8 +13,17 @@ class UCameraComponent;
 class USpringArmComponent;
 class UInputAction;
 class UInputMappingContext;
+class UPointLightComponent;
 class UStaticMeshComponent;
 class UTextRenderComponent;
+
+UENUM(BlueprintType)
+enum class EBroodEvolutionStage : uint8
+{
+	Larva,
+	Juvenile,
+	Mature
+};
 
 UCLASS()
 class DUNGEONBROOD_API ABroodCharacter : public ACharacter, public IAbilitySystemInterface
@@ -83,6 +92,33 @@ protected:
 	TObjectPtr<UStaticMeshComponent> FacingVisual;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UStaticMeshComponent> LarvaSegmentOneVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UStaticMeshComponent> LarvaSegmentTwoVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UStaticMeshComponent> LarvaGlowVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UStaticMeshComponent> LarvaLeftMandibleVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UStaticMeshComponent> LarvaRightMandibleVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UStaticMeshComponent> LarvaLeftSpineVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UStaticMeshComponent> LarvaRightSpineVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UStaticMeshComponent> LarvaTailStingerVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
+	TObjectPtr<UPointLightComponent> LarvaGlowLight;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|Visual")
 	TObjectPtr<UTextRenderComponent> NameplateVisual;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Brood|GAS")
@@ -113,7 +149,10 @@ private:
 	void UpdateAimFromMouseCursor();
 	void GetCameraMovementDirections(FVector& OutForwardDirection, FVector& OutRightDirection) const;
 	FVector GetLastMovementDirection() const;
+	void RefreshEvolutionStage();
+	FString GetEvolutionStageDisplayName() const;
 	void UpdateMutationVisual();
+	void AnimateLarvaVisual(float DeltaSeconds);
 	void PlayAttackAnimation();
 	void AddDefaultInputMappingContext() const;
 	void ApplyInitialMovementSpeed() const;
@@ -141,6 +180,7 @@ private:
 	bool bDigestEssence = false;
 	bool bAcidBlood = false;
 	bool bVenomStrike = false;
+	EBroodEvolutionStage EvolutionStage = EBroodEvolutionStage::Larva;
 	float BiomassRewardMultiplier = 1.0f;
 	float DodgeStaminaCost = 25.0f;
 	float DodgeImpulseStrength = 900.0f;
@@ -150,6 +190,7 @@ private:
 	float AttackRadius = 75.0f;
 	float VenomBonusDamage = 4.0f;
 	float CameraOrbitSensitivity = 1.0f;
+	float LarvaVisualTime = 0.0f;
 	FString PlayerAttackAnimationPath;
 	bool bCameraOrbitActive = false;
 	FTimerHandle StaminaRegenTimerHandle;

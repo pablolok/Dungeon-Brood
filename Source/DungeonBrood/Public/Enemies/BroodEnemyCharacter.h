@@ -38,6 +38,11 @@ public:
 private:
 	void ConfigureStats();
 	void ConfigureVisuals();
+	void ConfigureDungeonLevel5Dressing();
+	void ConfigureDungeonLevel5CreatureVariety();
+	void ConfigureJailerHuskDressing();
+	void CacheDungeonLevel5MotionPose();
+	void AnimateDungeonLevel5Dressing(float DeltaSeconds);
 	void TryAttackPlayer(float DeltaSeconds);
 	void ResetDamageFeedback();
 	void ResetAttackFeedback();
@@ -49,6 +54,63 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
 	TObjectPtr<UStaticMeshComponent> MarkerVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> BoneTorsoVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> BoneHeadVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> WeaponVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> CreatureAccentVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> CreatureSecondaryAccentVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerKeyRingVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerKeyTeethVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerChainVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerMantleVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerLeftArmVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerRightArmVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerManacleVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerHipsVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerRobeVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerSpineVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerLeftLegVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerRightLegVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerLeftHandKeyVisual;
+
+	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
+	TObjectPtr<UStaticMeshComponent> JailerRightHandKeyVisual;
 
 	UPROPERTY(VisibleAnywhere, Category = "Enemy|Visual")
 	TObjectPtr<UTextRenderComponent> NameplateVisual;
@@ -65,5 +127,31 @@ private:
 	FLinearColor MarkerColor = FLinearColor::White;
 	FTimerHandle DamageFeedbackTimerHandle;
 	FTimerHandle AttackFeedbackTimerHandle;
+	float VisualMotionTime = 0.0f;
+	FTransform BodyMotionBase;
+	FTransform MarkerMotionBase;
+	FTransform BoneHeadMotionBase;
+	FTransform WeaponMotionBase;
+	FTransform CreatureAccentMotionBase;
+	FTransform CreatureSecondaryAccentMotionBase;
+	FTransform JailerKeyRingMotionBase;
+	FTransform JailerKeyTeethMotionBase;
+	FTransform JailerChainMotionBase;
+	FTransform JailerLeftArmMotionBase;
+	FTransform JailerRightArmMotionBase;
+	FTransform JailerManacleMotionBase;
+	FTransform JailerHipsMotionBase;
+	FTransform JailerRobeMotionBase;
+	FTransform JailerSpineMotionBase;
+	FTransform JailerLeftLegMotionBase;
+	FTransform JailerRightLegMotionBase;
+	FTransform JailerLeftHandKeyMotionBase;
+	FTransform JailerRightHandKeyMotionBase;
+	bool bDungeonLevel5DressingReady = false;
+	bool bDungeonLevel5CreatureVarietyReady = false;
+	bool bJailerHuskDressingReady = false;
+	bool bDungeonLevel5MotionPoseCached = false;
+	bool bDungeonLevel5EnemyMotionLogged = false;
+	bool bJailerHuskChainMotionLogged = false;
 	bool bIsDead = false;
 };

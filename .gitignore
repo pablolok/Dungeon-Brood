@@ -25,6 +25,8 @@
 # Unreal build artifacts
 /Build/*/FileOpenOrder/
 /Build/*/FileOpenOrder/*
+/Plugins/*/Intermediate/
+/Plugins/*/Binaries/
 *.target
 *.modules
 *.version
@@ -85,6 +87,7 @@ Icon?
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mcp_venvs/
 
 # Keep project-critical source and configuration tracked
 !/Config/

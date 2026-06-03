@@ -43,7 +43,7 @@ if not exist "%PROJECT%" (
 )
 
 echo Launching Dungeon Brood with "%UE_ROOT%"
-"%UE_ROOT%\Engine\Binaries\Win64\UnrealEditor.exe" "%PROJECT%" -game -log -windowed -ResX=1280 -ResY=720 -WinX=80 -WinY=80
+"%UE_ROOT%\Engine\Binaries\Win64\UnrealEditor.exe" "%PROJECT%" -game -log -windowed -ResX=1280 -ResY=720 -WinX=80 -WinY=80 %*
 if errorlevel 1 (
     echo.
     echo ERROR: UnrealEditor exited with an error.
