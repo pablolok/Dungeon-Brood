@@ -13,6 +13,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Engine/TextRenderActor.h"
 #include "Engine/PointLight.h"
+#include "Engine/DirectionalLight.h"
 #include "Game/BroodGameMode.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -253,8 +254,8 @@ void ABroodPlayerController::BroodDungeonLevel5EnvironmentVisualSmokeTest()
 		}
 	}
 
-	const FVector EnvironmentCameraLocation(0.0f, -1120.0f, 220.0f);
-	const FVector EnvironmentLookAtLocation(0.0f, 1200.0f, 155.0f);
+	const FVector EnvironmentCameraLocation(0.0f, -350.0f, 5200.0f);
+	const FVector EnvironmentLookAtLocation(0.0f, -350.0f, 0.0f);
 	for (TActorIterator<AStaticMeshActor> MeshIterator(GetWorld()); MeshIterator; ++MeshIterator)
 	{
 		AStaticMeshActor* MeshActor = *MeshIterator;
@@ -294,31 +295,39 @@ void ABroodPlayerController::BroodDungeonLevel5EnvironmentVisualSmokeTest()
 		const bool bReviewCameraOccluder =
 			MeshName.Contains(TEXT("Ceiling")) ||
 			MeshName.Contains(TEXT("Arch"));
-		if (bFirstViewReviewCutOffender || bEnvironmentReviewProxyClutter ||
-			(bReviewCameraOccluder && FVector::DistSquared(MeshActor->GetActorLocation(), EnvironmentCameraLocation) < FMath::Square(240.0f)))
+		if (bFirstViewReviewCutOffender || bEnvironmentReviewProxyClutter || bReviewCameraOccluder)
 		{
 			MeshActor->SetActorHiddenInGame(true);
 			MeshActor->SetActorEnableCollision(false);
 		}
 	}
 
-	ACameraActor* EnvironmentCamera = GetWorld()->SpawnActor<ACameraActor>(EnvironmentCameraLocation, (EnvironmentLookAtLocation - EnvironmentCameraLocation).Rotation());
+	ACameraActor* EnvironmentCamera = GetWorld()->SpawnActor<ACameraActor>(EnvironmentCameraLocation, FRotator(-90.0f, 90.0f, 0.0f));
 	if (EnvironmentCamera)
 	{
-		EnvironmentCamera->GetCameraComponent()->SetProjectionMode(ECameraProjectionMode::Perspective);
-		EnvironmentCamera->GetCameraComponent()->SetFieldOfView(58.0f);
+		EnvironmentCamera->GetCameraComponent()->SetProjectionMode(ECameraProjectionMode::Orthographic);
+		EnvironmentCamera->GetCameraComponent()->SetOrthoWidth(14000.0f);
 		EnvironmentCamera->GetCameraComponent()->PostProcessSettings.bOverride_AutoExposureBias = true;
-		EnvironmentCamera->GetCameraComponent()->PostProcessSettings.AutoExposureBias = -0.25f;
+		EnvironmentCamera->GetCameraComponent()->PostProcessSettings.AutoExposureBias = 0.85f;
 		EnvironmentCamera->GetCameraComponent()->PostProcessSettings.bOverride_VignetteIntensity = true;
-		EnvironmentCamera->GetCameraComponent()->PostProcessSettings.VignetteIntensity = 0.35f;
+		EnvironmentCamera->GetCameraComponent()->PostProcessSettings.VignetteIntensity = 0.0f;
 		SetViewTarget(EnvironmentCamera);
+	}
+	if (ADirectionalLight* LayoutReviewLight = GetWorld()->SpawnActor<ADirectionalLight>(FVector(0.0f, -350.0f, 2400.0f), FRotator(-90.0f, 0.0f, 0.0f)))
+	{
+		LayoutReviewLight->SetActorLabel(TEXT("DungeonLevel5RuntimeLayoutReviewLight"));
+		if (ULightComponent* ReviewLightComponent = LayoutReviewLight->GetLightComponent())
+		{
+			ReviewLightComponent->SetIntensity(2.2f);
+			ReviewLightComponent->SetLightColor(FLinearColor(0.78f, 0.88f, 1.0f));
+		}
 	}
 
 	UE_LOG(LogTemp, Display, TEXT("BROOD_DUNGEON_LEVEL5_ENVIRONMENT_FOREGROUND_OCCLUDERS_HIDDEN_READY: Level 5 environment review uses a dedicated ARPG camera placed inside the spawn threshold sightline."));
 	UE_LOG(LogTemp, Display, TEXT("BROOD_DUNGEON_LEVEL5_ENVIRONMENT_LEFT_EDGE_CLEANUP_READY: Level 5 environment review hides first-view edge-only cut offenders without changing gameplay placement."));
 	UE_LOG(LogTemp, Display, TEXT("BROOD_DUNGEON_LEVEL5_ENVIRONMENT_PROXY_CLUTTER_HIDDEN_READY: Level 5 environment review hides primitive proxy dressing so asset floor, dungeon architecture, player and enemies carry the frame."));
-	UE_LOG(LogTemp, Display, TEXT("BROOD_DUNGEON_LEVEL5_ENVIRONMENT_POE_CAMERA_READY: Level 5 environment review uses a lower Path-of-Exile-style angle to show floor, enemies, walls and threshold depth."));
-	UE_LOG(LogTemp, Display, TEXT("BROOD_DUNGEON_LEVEL5_ENVIRONMENT_VISUAL_SMOKE_STARTED: capturing Level 5 dungeon enclosure, modular floor, route, enemies and scale reference."));
+	UE_LOG(LogTemp, Display, TEXT("BROOD_DUNGEON_LEVEL5_ENVIRONMENT_POE_CAMERA_READY: Level 5 environment review uses a top-down orthographic layout camera while the dungeon topology is being rebuilt."));
+	UE_LOG(LogTemp, Display, TEXT("BROOD_DUNGEON_LEVEL5_ENVIRONMENT_VISUAL_SMOKE_STARTED: capturing Level 5 dungeon enclosure, modular floor, route graph and room scale reference."));
 	GetWorldTimerManager().SetTimer(DungeonLevel5EnvironmentVisualScreenshotTimerHandle, this, &ABroodPlayerController::CaptureDungeonLevel5EnvironmentVisualScreenshot, 0.65f, false);
 }
 

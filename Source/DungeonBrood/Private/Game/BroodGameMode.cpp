@@ -1586,7 +1586,13 @@ void ABroodGameMode::StartNextEncounter()
 	}
 	else
 	{
-		SpawnEnemy(EBroodEnemyType::BossBrute, FVector(1000.0f, 0.0f, 120.0f));
+		// On the editor-authored map the Jailer Husk guards its own Arena del Carceriere
+		// (see .agents/unreal_scripts/build_level5_editor_map.py ArenaCarceriere center).
+		// The runtime blockout keeps the original central spawn.
+		const FVector JailerSpawn = IsEditorAuthoredDungeonLevel5Map()
+			? FVector(3900.0f, 0.0f, 120.0f)
+			: FVector(1000.0f, 0.0f, 120.0f);
+		SpawnEnemy(EBroodEnemyType::BossBrute, JailerSpawn);
 	}
 
 	PrintHud();

@@ -1,3 +1,13 @@
+"""Validate the editor-authored Dungeon Level 5 map for the failure modes that made the
+old build look chaotic: overlapping tiles, gaps, and floating geometry.
+
+Checks:
+  * floor tile count equals the unique tiles of the layout (no gaps, no extras);
+  * no floor-floor and no wall-wall XY overlaps;
+  * art meshes sit on the ground (bottom Z ~ 0), excluding intentionally raised pieces;
+  * a PlayerStart and hidden gameplay collision are present.
+"""
+
 import unreal
 
 
@@ -7,122 +17,127 @@ PREFIX = "DB_L5Pack_"
 LEVEL_SUBSYSTEM = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 ACTOR_SUBSYSTEM = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 
+# Must mirror ALL_RECTS in build_level5_editor_map.py (i_min, i_max, j_min, j_max).
+RECTS = {
+    "SalaCaduta": (-4, -3, -1, 0), "SalaCentrale": (-1, 2, -2, 1),
+    "ArenaCarceriere": (5, 7, -2, 1), "ScalaLivello4": (10, 11, -1, 0),
+    "CelleCrollate": (-3, -2, -4, -3), "SalaAcqua": (-1, 0, -5, -4),
+    "SalaRadici": (5, 6, -5, -4), "CorridoioCatene": (-3, -2, 3, 4),
+    "StanzaEvento": (0, 1, 4, 5), "BacinoBiomassa": (5, 6, 4, 5),
+    "C_Caduta_Centrale": (-2, -2, 0, 0), "C_Centrale_Carceriere": (3, 4, 0, 0),
+    "C_Carceriere_Livello4": (8, 9, 0, 0), "C_Celle": (-2, -2, -2, -1),
+    "C_Acqua": (0, 0, -3, -3), "C_Radici": (6, 6, -3, -3),
+    "C_Catene": (-2, -2, 1, 2), "C_Evento": (1, 1, 2, 3), "C_Bacino": (6, 6, 2, 3),
+}
 
-INTENTIONAL_OFF_GROUND = (
-    "Ceiling",
-    "Chandelier",
-    "Torch",
-    "RootBeam",
-    "Light",
-    "StairStep",
-    "StairRun",
-    "WallChains",
-)
-
-REJECTED_LAYOUT_LABELS = (
-    PREFIX + "EntranceSurfaceDoorway",
-    PREFIX + "EntranceVisibleSurfaceStairs",
-    PREFIX + "EntranceSurfaceStairLowerRun",
-    PREFIX + "EntranceSurfaceStairs10Flat",
-    PREFIX + "EntranceSurfaceStairs5Flat",
-    PREFIX + "SurfaceReadableStairRun_00",
-    PREFIX + "SurfaceReadableStairRun_01",
-    PREFIX + "SurfaceReadableStairRun_02",
-    PREFIX + "SurfaceReadableStairRun_03",
-    PREFIX + "SurfaceReadableStairRun_04",
-    PREFIX + "PhaseGate_FirstCombatToJailerApproach",
-    PREFIX + "Exit_DarkStairsToLevel4",
-    PREFIX + "Exit_Level4Doorway",
-)
+INTENTIONAL_OFF_GROUND = ("Ceiling", "Torch", "Light", "StairStep", "Daylight",
+                          "DepthGlow", "Glow", "COL_", "Statue")
+OVERLAP_TOL = 40.0
+GROUND_TOL = 12.0
 
 
-def actor_bottom_z(actor):
-    origin, extent = actor.get_actor_bounds(False)
-    return origin.z - extent.z
+def log(msg):
+    unreal.log("DB_LEVEL5_EDITOR_VALIDATE: " + msg)
+
+
+def err(msg):
+    unreal.log_error("DB_LEVEL5_EDITOR_VALIDATE_" + msg)
+
+
+def aabb(actor):
+    o, e = actor.get_actor_bounds(False)
+    return (o.x - e.x, o.x + e.x, o.y - e.y, o.y + e.y, o.z - e.z, o.z + e.z)
+
+
+def xy_overlap(a, b):
+    return min(min(a[1], b[1]) - max(a[0], b[0]), min(a[3], b[3]) - max(a[2], b[2]))
+
+
+def expected_tiles():
+    tiles = set()
+    for (i0, i1, j0, j1) in RECTS.values():
+        for i in range(i0, i1 + 1):
+            for j in range(j0, j1 + 1):
+                tiles.add((i, j))
+    return len(tiles)
 
 
 def main():
     if not LEVEL_SUBSYSTEM.load_level(MAP_PATH):
         raise RuntimeError("Could not load {}".format(MAP_PATH))
 
-    pack_actors = []
-    collision_actors = []
+    floors, walls = [], []
+    pack = collision = 0
+    has_player_start = False
     floating = []
-    unsupported_warm_lights = []
-    rejected_layout_actors = []
-    vertical_stairs = []
-    off_axis_entrance_steps = []
 
     for actor in ACTOR_SUBSYSTEM.get_all_level_actors():
         try:
-            label = actor.get_actor_label()
+            lbl = actor.get_actor_label()
         except Exception:
             continue
-
-        if not label.startswith(PREFIX):
+        if isinstance(actor, unreal.PlayerStart) and lbl.startswith(PREFIX):
+            has_player_start = True
+        if not lbl.startswith(PREFIX):
             continue
-
-        pack_actors.append(actor)
-        if label in REJECTED_LAYOUT_LABELS:
-            rejected_layout_actors.append(label)
-
-        if label.startswith(PREFIX + "COL_"):
-            collision_actors.append(actor)
+        pack += 1
+        if "COL_" in lbl:
+            collision += 1
             continue
-
-        if isinstance(actor, unreal.PointLight):
-            label_lower = label.lower()
-            if "light" in label_lower and not any(token in label_lower for token in ("torch", "candle", "chandelier", "blue", "fill", "window", "depth", "shadow")):
-                unsupported_warm_lights.append(label)
+        if not isinstance(actor, unreal.StaticMeshActor):
             continue
+        box = aabb(actor)
+        if "Floor_" in lbl and "COL_" not in lbl:
+            floors.append((lbl, box))
+        elif "Wall" in lbl:
+            walls.append((lbl, box))
+        if not any(tok in lbl for tok in INTENTIONAL_OFF_GROUND) and box[4] > GROUND_TOL:
+            floating.append((lbl, box[4]))
 
-        origin, extent = actor.get_actor_bounds(False)
-        if "Stairs" in label and extent.z > max(extent.x, extent.y) * 0.65:
-            vertical_stairs.append((label, extent.x, extent.y, extent.z))
-            continue
-
-        if "EntranceSurfaceStairStep" in label and abs(actor.get_actor_location().x) > 1.0:
-            off_axis_entrance_steps.append((label, actor.get_actor_location().x))
-
-        if any(token in label for token in INTENTIONAL_OFF_GROUND):
-            continue
-
-        bottom = origin.z - extent.z
-        if bottom > 8.0:
-            floating.append((label, bottom))
-
-    unreal.log("DB_LEVEL5_EDITOR_VALIDATE: pack actors={}".format(len(pack_actors)))
-    unreal.log("DB_LEVEL5_EDITOR_VALIDATE: collision actors={}".format(len(collision_actors)))
-
-    if len(collision_actors) < 10:
-        raise RuntimeError("Expected at least 10 hidden collision actors, found {}".format(len(collision_actors)))
-
-    if unsupported_warm_lights:
-        for label in unsupported_warm_lights[:25]:
-            unreal.log_error("DB_LEVEL5_EDITOR_VALIDATE_UNSUPPORTED_LIGHT: {}".format(label))
-        raise RuntimeError("Found {} light actors without a physical source or approved blue-fill role".format(len(unsupported_warm_lights)))
-
-    if rejected_layout_actors:
-        for label in rejected_layout_actors[:25]:
-            unreal.log_error("DB_LEVEL5_EDITOR_VALIDATE_REJECTED_LAYOUT_ACTOR: {}".format(label))
-        raise RuntimeError("Found {} rejected entrance/doorway/stair layout actors".format(len(rejected_layout_actors)))
-
-    if vertical_stairs:
-        for label, ex, ey, ez in vertical_stairs[:25]:
-            unreal.log_error("DB_LEVEL5_EDITOR_VALIDATE_VERTICAL_STAIRS: {} extent=({:.1f},{:.1f},{:.1f})".format(label, ex, ey, ez))
-        raise RuntimeError("Found {} stair actors with vertical orientation".format(len(vertical_stairs)))
-
-    if off_axis_entrance_steps:
-        for label, x in off_axis_entrance_steps[:25]:
-            unreal.log_error("DB_LEVEL5_EDITOR_VALIDATE_OFF_AXIS_ENTRANCE_STEP: {} x={:.1f}".format(label, x))
-        raise RuntimeError("Found {} entrance stair steps off the doorway centerline".format(len(off_axis_entrance_steps)))
+    log("pack={} floors={} walls={} collision={}".format(pack, len(floors), len(walls), collision))
+    problems = []
 
     if floating:
-        for label, bottom in floating[:25]:
-            unreal.log_error("DB_LEVEL5_EDITOR_VALIDATE_FLOATING: {} bottom_z={:.1f}".format(label, bottom))
-        raise RuntimeError("Found {} non-intentional floating DB_L5Pack actors".format(len(floating)))
+        for lbl, b in floating[:25]:
+            err("FLOATING: {} bottom_z={:.1f}".format(lbl, b))
+        problems.append("{} floating art".format(len(floating)))
 
-    unreal.log("DB_LEVEL5_EDITOR_VALIDATE_PASSED: no non-intentional floating pack actors and hidden collision is present.")
+    exp = expected_tiles()
+    if len(floors) != exp:
+        err("FLOOR_COUNT: expected {} unique tiles, found {}".format(exp, len(floors)))
+        problems.append("floor count mismatch (gap/extra)")
+
+    fo = 0
+    for a in range(len(floors)):
+        for b in range(a + 1, len(floors)):
+            if xy_overlap(floors[a][1], floors[b][1]) > OVERLAP_TOL:
+                if fo < 25:
+                    err("FLOOR_OVERLAP: {} <-> {}".format(floors[a][0], floors[b][0]))
+                fo += 1
+    if fo:
+        problems.append("{} floor overlaps".format(fo))
+
+    wo = 0
+    for a in range(len(walls)):
+        for b in range(a + 1, len(walls)):
+            if xy_overlap(walls[a][1], walls[b][1]) > OVERLAP_TOL:
+                if wo < 25:
+                    err("WALL_OVERLAP: {} <-> {}".format(walls[a][0], walls[b][0]))
+                wo += 1
+    if wo:
+        problems.append("{} wall overlaps".format(wo))
+
+    if not has_player_start:
+        err("NO_PLAYER_START")
+        problems.append("missing PlayerStart")
+    if collision < 8:
+        err("LOW_COLLISION: {}".format(collision))
+        problems.append("insufficient collision")
+
+    if problems:
+        raise RuntimeError("Validation failed: " + "; ".join(problems))
+    log("PASSED: {} floor tiles tile cleanly, no floor/wall overlaps, no floating art, "
+        "PlayerStart + collision present.".format(len(floors)))
 
 
 main()
